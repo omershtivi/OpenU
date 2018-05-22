@@ -38,33 +38,53 @@ def downloadClips(s, filename):
                 movie.close()
             #end of internal if
         # end of if
-        perc=c/llen
-        perc=perc*100.0
-        print ('%f percent done!' % perc)
+        if c%15==0:
+            #will print progress every chunk
+            perc=c/llen
+            perc=perc*100.0
+            print ('%d percent done!' % perc)
+        #end of if
     #end of for
 #end of downloadClips
 
-crs = input("Please provide course code...\r\n>")
-year = (datetime.datetime.now().year-2000)
-m= datetime.datetime.now().month
-if m==1:
-    cem="a"
-elif m<=6:
-    cem="b"
-elif m<=9:
-    cem="c"
-else:
-    cem="a"
-cem=str(year)+cem
-grp = input("Please Provide group code, use underscore for delimiter\r\n>")
+def findCem():
+    year = (datetime.datetime.now().year-2000)
+    m= datetime.datetime.now().month
+    if m==1:
+        cem="a"
+    elif m<=6:
+        cem="b"
+    elif m<=9:
+        cem="c"
+    else:
+        cem="a"
+    return str(year)+cem
+#end of findCem
+
+def menu(amount, crs, cem, grp):
+    dec = input("Please select witch Lesson you want\r\nUse 0 for all Or \"-1\" to exit\r\n")
+    if dec== '-1':
+        print ("Thank you for using %s !\r\nGood Day" % sys.argv[0])
+        return 1
+    elif dec == '0':
+        for x in range(1, amount+1):
+            downloadClips(getClipUrl(crs, cem, grp, x), "lesson_"+str(x)+".ts")
+        # end of for
+        return 1
+    elif int(dec)>amount:
+        print("you've chosen a wrong Lesson!")
+    else:
+        downloadClips(getClipUrl(crs, cem, grp, int(dec)), "lesson_"+dec+".ts")
+crs=grp=""
+while crs == "" :
+    crs = input("Please provide course code...\r\n>")
+while grp=='':
+    grp = input("Please Provide group code, use underscore for delimiter\r\n>")
+cem = findCem()
 amount = get_MovieAmount(crs, cem, grp)
-print("found %d Lessons " % amount)
-dec = input("Please select witch Lesson you want\r\nUse 0 for all")
-if dec=='all':
-    print("Under Construction")
-elif int(dec)>amount:
-    print(dec)
-    print(amount)
-    print("you've chosen a wrong Lesson!")
-else:
-    downloadClips(getClipUrl(crs, cem, grp, int(dec)), "lesson.ts")
+print("found %d Lessons\r\n" % amount)
+
+flag=0
+while not flag:
+    flag=menu(amount, crs, cem, grp)
+# end of while
