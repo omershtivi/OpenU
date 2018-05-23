@@ -75,16 +75,40 @@ def menu(amount, crs, cem, grp):
         print("you've chosen a wrong Lesson!")
     else:
         downloadClips(getClipUrl(crs, cem, grp, int(dec)), "lesson_"+dec+".ts")
-crs=grp=""
-while crs == "" :
-    crs = input("Please provide course code...\r\n>")
-while grp=='':
-    grp = input("Please Provide group code, use underscore for delimiter\r\n>")
-cem = findCem()
-amount = get_MovieAmount(crs, cem, grp)
-print("found %d Lessons\r\n" % amount)
+# end of menu
 
-flag=0
-while not flag:
-    flag=menu(amount, crs, cem, grp)
-# end of while
+print("None interactive mode useage:\t%s <Course ID> <Group ID> <Lesson Number>\r\nExample:\t %s 30111 780_01 1" % (sys.argv[0], sys.argv[0]))
+if len(sys.argv)>1:
+    downloadClips(getClipUrl(sys.argv[1], findCem(), sys.argv[2], int(sys.argv[3])), "lesson_"+sys.argv[1]+"_"+sys.argv[2]+"_"+sys.argv[3]+".ts")
+opType=input("Please choose operation mode\r\n1: Use playlist url to fetch specific lesson\r\n2: Use chunk URL to fetch specific lesson\r\n3: Provide Course ID and Group ID for interactive menu\r\n>")
+if opType=='1':
+    s=input("Please provide url to M3U playlist file\r\n>")
+    downloadClips(s, 'lesson.ts')
+elif opType=='2':
+    s=input("Please provide url to a clip, omit clip number and \".ts\"\r\n> ")
+    status_code = 200
+    counter = 0
+    while status_code == 200:
+        response = requests.get('%s_%d.ts' % (s,counter))
+        status_code = response.status_code
+        if status_code == 200:
+            movie = open('lesson.ts', "ab")
+            movie.write(response.content)
+            movie.close()
+            counter = counter + 1
+elif opType=='3':
+    crs=grp=""
+    while crs == "" :
+        crs = input("Please provide course code...\r\n>")
+    while grp=='':
+        grp = input("Please Provide group code, use underscore for delimiter\r\n>")
+    cem = findCem()
+    amount = get_MovieAmount(crs, cem, grp)
+    print("found %d Lessons\r\n" % amount)
+
+    flag=0
+    while not flag:
+        flag=menu(amount, crs, cem, grp)
+    # end of while
+#end of else
+
