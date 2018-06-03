@@ -1,4 +1,4 @@
-import requests, os, sys, datetime
+import requests, os, sys, webbrowser, re, time, browser_cookie3
 
 def getClipUrl(crs, cem, grp, n):
     response = requests.get('https://api.bynetcdn.com/Redirector/openu/manifest/c%s_%s_%s_%d_HD_mp4/HLS/playlist.m3u8' % (crs, cem, grp,n))
@@ -47,20 +47,6 @@ def downloadClips(s, filename):
     #end of for
 #end of downloadClips
 
-def findCem():
-    year = (datetime.datetime.now().year-2000)
-    m= datetime.datetime.now().month
-    if m==1:
-        cem="a"
-    elif m<=6:
-        cem="b"
-    elif m<=9:
-        cem="c"
-    else:
-        cem="a"
-    return str(year)+cem
-#end of findCem
-
 def menu(amount, crs, cem, grp):
     dec = input("Please select witch Lesson you want\r\nUse 0 for all Or \"-1\" to exit\r\n")
     if dec== '-1':
@@ -77,10 +63,36 @@ def menu(amount, crs, cem, grp):
         downloadClips(getClipUrl(crs, cem, grp, int(dec)), "lesson_"+dec+".ts")
 # end of menu
 
-print("None interactive mode useage:\t%s <Course ID> <Group ID> <Lesson Number>\r\nExample:\t %s 30111 780_01 1" % (sys.argv[0], sys.argv[0]))
+def find_info():
+    webbrowser.open("https://sheilta.apps.openu.ac.il/pls/dmyopt2/sheilta.myop")
+
+    time.sleep(30)
+
+    jar = requests.cookies.RequestsCookieJar()
+    cj = browser_cookie3.load(domain_name='openu.ac.il')
+    for cookie in cj:
+        if 'openu.ac.il' in cookie.domain :
+            jar.set(cookie.name, cookie.value, domain=cookie.domain, path='/')
+
+    r1=requests.get("https://sheilta.apps.openu.ac.il/pls/dmyopt2/course_info.courses", cookies=jar)
+    if r1.status_code!=200:
+        sys.exit(1)
+
+    for loc1 in re.findall('https\:\/\/.+course.php\?.+?\"',r1.text):
+        course=loc1.split("course=")[1].split("&semester")[0]
+        tmp=r1.text.find("course_info.courseinfo?p_kurs="+course[1:])
+        grp=r1.text[tmp:tmp+100].split("p_MERKAZ_LIMUD=")[1].split("&")[0]+"_"+r1.text[tmp:tmp+100].split("p_KVUTZAT_LIMUD=")[1].split("&")[0]
+        semester=r1.text[tmp:tmp+100].split("p_semester=20")[1].split("&")[0]
+        print("Course="+course+", Group="+grp + ", Semester=" + semester)
+# end of find_info
+
+
+print("None interactive mode useage:\t%s <Course ID> <Group ID> <Semester> <Lesson Number>\r\nExample:\t %s 30111 780_01 18b 1" % (sys.argv[0], sys.argv[0]))
 if len(sys.argv)>1:
-    downloadClips(getClipUrl(sys.argv[1], findCem(), sys.argv[2], int(sys.argv[3])), "lesson_"+sys.argv[1]+"_"+sys.argv[2]+"_"+sys.argv[3]+".ts")
-opType=input("Please choose operation mode\r\n1: Use playlist url to fetch specific lesson\r\n2: Use chunk URL to fetch specific lesson\r\n3: Provide Course ID and Group ID for interactive menu\r\n>")
+    print(sys.argv[1], sys.argv[3], sys.argv[2], int(sys.argv[4]))
+    downloadClips(getClipUrl(sys.argv[1], sys.argv[3], sys.argv[2], int(sys.argv[4])), "lesson_"+sys.argv[1]+"_"+sys.argv[2]+"_"+sys.argv[4]+".ts")
+    sys.exit(0)
+opType=input("Please choose operation mode\r\n1: Use playlist url to fetch specific lesson\r\n2: Use chunk URL to fetch specific lesson\r\n3: Provide Course ID and Group ID for interactive menu\r\n4: Will fetch all your courses and groups\r\n>")
 if opType=='1':
     s=input("Please provide url to M3U playlist file\r\n>")
     downloadClips(s, 'lesson.ts')
@@ -97,12 +109,13 @@ elif opType=='2':
             movie.close()
             counter = counter + 1
 elif opType=='3':
-    crs=grp=""
+    crs=grp=cem=""
     while crs == "" :
         crs = input("Please provide course code...\r\n>")
     while grp=='':
         grp = input("Please Provide group code, use underscore for delimiter\r\n>")
-    cem = findCem()
+    while cem=='':
+        cem = input("Please Provide desired semester\r\n>")
     amount = get_MovieAmount(crs, cem, grp)
     print("found %d Lessons\r\n" % amount)
 
@@ -110,5 +123,7 @@ elif opType=='3':
     while not flag:
         flag=menu(amount, crs, cem, grp)
     # end of while
-#end of else
+elif opType=='4':
+    find_info()
+#end of elseif
 
